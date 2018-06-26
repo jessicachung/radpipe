@@ -54,9 +54,10 @@ class PipelineStages(Stages):
         '''Index reference genome for bowtie alignment'''
         safe_make_dir(reference_dir)
         command = "ln -sf {ref_fasta} {ref_symlink} && bowtie-build " \
-                  "reference.fa reference".format(
+                  "{ref_symlink} {index_base}".format(
                       ref_fasta=os.path.abspath(input),
-                      ref_symlink=os.path.join(reference_dir, "reference.fa"))
+                      ref_symlink=os.path.join(reference_dir, "reference.fa"),
+                      index_base= os.path.join(reference_dir, "reference"))
         run_stage(self.state, 'build_index', command)
 
     def fastqc(self, input, outputs, fastqc_dir):
@@ -100,14 +101,43 @@ class PipelineStages(Stages):
         log_file = os.path.join(output_path, "{sm}.bwa.log".format(sm=sm))
         read_group_string = "@RG\tID:{lb}\tLB:{lb}\tPU:{lb}\tPL:ILLUMINA\tSM:{sm}" \
                             "".format(lb=lb, sm=sm)
-        command = 'bwa mem -t {cores} -a {extra_options} -R "{rg}" {ref_fasta} {fastq_input} ' \
-                  '2> {log_file} | samtools view -b - > {output}'.format(
-                          cores=cores, extra_options=extra_options, rg=read_group_string,
-                          ref_fasta=ref_fasta, fastq_input=fastq_input,
-                          output=output, log_file=log_file)
-        ## TODO: make sure bwa completed successfully
+        command = 'set -o pipefail; bwa mem -t {cores} {extra_options} ' \
+                  '-R "{rg}" {ref_fasta} {fastq_input} 2> {log_file} | ' \
+                  'samtools view -b - > {output}' .format(
+                          cores=cores, extra_options=extra_options,
+                          rg=read_group_string, ref_fasta=ref_fasta,
+                          fastq_input=fastq_input, output=output,
+                          log_file=log_file)
+        # Use bash instead of sh
+        command = 'bash -c "{}"'.format(command)
         run_stage(self.state, "alignment", command)
 
+    def bowtie_align(self, inputs, output, index_base, input_path, output_path,
+                     sm, extra_options):
+        '''Align fastq files with Bowtie'''
+        safe_make_dir(os.path.dirname(output))
+        cores = self.get_stage_options("alignment", "cores")
+        # If PE fastq inputs, join into a string
+        # Bowtie doesn't accept gzipped files
+        if isinstance(inputs, list):
+            assert(len(inputs) == 2)
+            fastq_input = "-1 <(zcat {r1}) -2 <(zcat {r2})" \
+                          .format(r1=inputs[0], r2=inputs[1])
+        else:
+            fastq_input = "<(zcat {})".format(inputs)
+        lb = os.path.basename(input_path)
+        log_file = os.path.join(output_path, "{sm}.bowtie.log".format(sm=sm))
+        command = "set -o pipefail; bowtie --threads {cores} --sam {extra_options} " \
+                  "--sam-RG ID:{lb} --sam-RG LB:{lb} --sam-RG PU:{lb} " \
+                  "--sam-RG PL:ILLUMINA --sam-RG SM:{sm} " \
+                  "{index_base} {fastq} 2> {log_file} | samtools view -b - " \
+                  "> {output}".format(
+                          cores=cores, extra_options=extra_options, lb=lb,
+                          sm=sm, index_base=index_base, fastq=fastq_input,
+                          log_file=log_file, output=output)
+        # Use bash instead of sh
+        command = 'bash -c "{}"'.format(command)
+        run_stage(self.state, "alignment", command)
 
     def sort_bam(self, input, output):
         '''Sort BAM file by coordinates'''

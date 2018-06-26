@@ -61,8 +61,11 @@ def make_pipeline(state):
     # If 'alignment' is in target_tasks, specify which type of alignment job
     # TODO: allow multiple comma-separated tasks
     if "alignment" in state.options.target_tasks:
-        state.options.target_tasks = ["bwa_align"]
-    logging.debug(state.options)
+        if alignment_method == "bwa mem":
+            state.options.target_tasks = ["bwa_align"]
+        elif alignment_method == "bowtie":
+            state.options.target_tasks = ["bowtie_align"]
+    logging.debug(state)
 
     # Population map filenames
     popmap_file = "{output_dir}/{name}_popmap.txt".format(
@@ -172,7 +175,16 @@ def make_pipeline(state):
         ).follows("bwa_index")
 
     if align_task_name == "bowtie":
-        pass ## TODO
+        (pipeline.transform(
+            task_func=stages.bowtie_align,
+            name=align_task_name,
+            input=process_radtags_outputs,
+            filter=formatter(".+/(?P<sm>[^/]+).1.fq.gz"),
+            output="%s/{sm[0]}.bowtie.bam" % output_dir["alignments"],
+            extras=[os.path.join(output_dir["reference"], "reference"),
+                    "{path[0]}", output_dir["alignments"], "{sm[0]}",
+                    state.config.get_options("alignment_options")])
+        ).follows("bowtie_index")
 
     # Sort BAM and index
     pipeline.transform(
