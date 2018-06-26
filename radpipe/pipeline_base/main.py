@@ -55,15 +55,15 @@ def main(program_name, program_version, make_pipeline):
     logger.info(' '.join(sys.argv))
     #logging.info(' '.join(sys.argv))
     drmaa_session = None
-    # try:
-    #     # Set up the DRMAA session for running cluster jobs
-    #     import drmaa
-    #     drmaa_session = drmaa.Session()
-    #     drmaa_session.initialize()
-    # except Exception as e:
-    #     print("{progname} error using DRMAA library".format(progname=program_name), file=sys.stdout)
-    #     print("Error message: {msg}".format(msg=e.message, file=sys.stdout))
-    #     exit(error_codes.DRMAA_ERROR)
+    try:
+        # Set up the DRMAA session for running cluster jobs
+        import drmaa
+        drmaa_session = drmaa.Session()
+        drmaa_session.initialize()
+    except Exception as e:
+        print("{progname} error using DRMAA library".format(progname=program_name), file=sys.stdout)
+        print("Error message: {msg}".format(msg=e.message, file=sys.stdout))
+        exit(error_codes.DRMAA_ERROR)
     # Parse the configuration file, and initialise global state
     config = Config(options.config)
     config.validate()

@@ -39,25 +39,32 @@ def run_stage(state, stage, command):
     # Grab the configuration options for this stage
     config = state.config
     mem = config.get_stage_option(stage, 'mem') * MEGABYTES_IN_GIGABYTE
-    account = config.get_stage_option(stage, 'account')
     queue = config.get_stage_option(stage, 'queue')
     walltime = config.get_stage_option(stage, 'walltime')
     run_local = config.get_stage_option(stage, 'local')
     cores = config.get_stage_option(stage, 'cores')
     pipeline_id = config.get_option('pipeline_id')
     job_name = pipeline_id + '_' + stage
+
+    # Optional configurations
+    try:
+        account = config.get_stage_option(stage, 'account')
+        account_option = '--account={}'.format(account)
+    except:
+        account_option = ''
     try:
         modules = config.get_stage_option(stage, 'modules')
+        module_loads = '\n'.join(['module load ' + module for module in modules])
     except:
-        modules = []
+        module_loads = ''
 
     # Generate a "module load" command for each required module
-    module_loads = '\n'.join(['module load ' + module for module in modules])
+
     cluster_command = '\n'.join([module_loads, command])
 
     # Specify job-specific options for SLURM
-    job_options = '--nodes=1 --ntasks-per-node={cores} --ntasks={cores} --time={time} --mem={mem} --partition={queue} --account={account}' \
-                      .format(cores=cores, time=walltime, mem=mem, queue=queue, account=account)
+    job_options = '--nodes=1 --ntasks-per-node={cores} --ntasks={cores} --time={time} --mem={mem} --partition={queue} {account_option}' \
+                      .format(cores=cores, time=walltime, mem=mem, queue=queue, account_option=account_option)
 
     # Log a message about the job we are about to run
     log_messages = ['Running stage: {}'.format(stage),
@@ -79,8 +86,8 @@ def run_stage(state, stage, command):
                 run_locally = run_local,
                 # Keep a copy of the job script for diagnostic purposes
                 retain_job_scripts = True,
-                # retain_stdout = True,
-                # retain_stderr = True,
+                retain_stdout = True,
+                retain_stderr = True,
                 job_script_directory = state.options.jobscripts,
                 job_other_options = job_options)
     except error_drmaa_job as err:
