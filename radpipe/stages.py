@@ -48,7 +48,7 @@ class PipelineStages(Stages):
         command = "ln -sf {ref_fasta} {ref_symlink} && bwa index {ref_symlink}".format(
                       ref_fasta=os.path.abspath(input),
                       ref_symlink=os.path.join(reference_dir, "reference.fa"))
-        run_stage(self.state, 'build_index', command)
+        run_stage(self.state, "build_index", command)
 
     def bowtie_index(self, input, outputs, reference_dir):
         '''Index reference genome for bowtie alignment'''
@@ -58,20 +58,27 @@ class PipelineStages(Stages):
                       ref_fasta=os.path.abspath(input),
                       ref_symlink=os.path.join(reference_dir, "reference.fa"),
                       index_base= os.path.join(reference_dir, "reference"))
-        run_stage(self.state, 'build_index', command)
+        run_stage(self.state, "build_index", command)
 
-    def fastqc(self, input, outputs, fastqc_dir):
+    def fastqc(self, input, outputs, fastqc_dir, lib):
         '''Run FastQC on fastq files'''
         safe_make_dir(fastqc_dir)
-        # If multiple fastq inputs, join into a string
-        if isinstance(input, list):
-            fastq_input = " ".join(input)
-        else:
-            fastq_input = input
-        command = "fastqc -o {fastqc_dir} -f fastq {fastq_input}".format(
-                      fastqc_dir=fastqc_dir,
+        fastqc_output_dir = os.path.join(fastqc_dir, lib)
+        safe_make_dir(fastqc_output_dir)
+        assert(isinstance(input, list))
+        # Remove barcode file
+        fastq_input = input[:-1]
+        fastq_input = " ".join(fastq_input)
+        command = "fastqc -o {fastqc_output_dir} -f fastq {fastq_input}".format(
+                      fastqc_output_dir=fastqc_output_dir,
                       fastq_input=fastq_input)
-        run_stage(self.state, 'fastqc', command)
+        run_stage(self.state, "fastqc", command)
+
+    def multiqc(self, input, output, fastqc_dir):
+        '''Run MultiQC on the FastQC directory'''
+        command = "multiqc -o {fastqc_dir} {fastqc_dir}".format(
+                      fastqc_dir=fastqc_dir)
+        run_stage(self.state, "multiqc", command)
 
     def process_radtags(self, inputs, output, output_dir, lib, re_1, re_2,
                         extra_options):
@@ -109,7 +116,7 @@ class PipelineStages(Stages):
                           fastq_input=fastq_input, output=output,
                           log_file=log_file)
         # Use bash instead of sh
-        command = 'bash -c "{}"'.format(command)
+        command = "bash -c '{}'".format(command)
         run_stage(self.state, "alignment", command)
 
     def bowtie_align(self, inputs, output, index_base, input_path, output_path,

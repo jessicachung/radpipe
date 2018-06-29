@@ -45,7 +45,7 @@ def make_pipeline(state):
             logging.error("Sample {} appears {} times in the barcodes files. "
                           "Sample names must be unique".format(sample,
                               sample_counts[sample]))
-            sys.exit(error_codes.INVALID_INPUT_FILE)
+            sys.exit(radpipe.error_codes.INVALID_INPUT_FILE)
 
     # Define output directories
     output_dir = get_output_paths(state)
@@ -56,7 +56,7 @@ def make_pipeline(state):
     if alignment_method not in ["bwa mem", "bowtie"]:
         logging.error("Error: Invalid alignment_method in config file. " \
                       "Valid options are ['bwa mem', 'bowtie'].")
-        sys.exit(error_codes.INVALID_ARGUMENT)
+        sys.exit(radpipe.error_codes.INVALID_ARGUMENT)
 
     # If 'alignment' is in target_tasks, specify which type of alignment job
     # TODO: allow multiple comma-separated tasks
@@ -133,9 +133,16 @@ def make_pipeline(state):
         task_func=stages.fastqc,
         name="fastqc",
         input=output_from("original_fastqs"),
-        filter=suffix(".fastq.gz"),
-        output="_fastqc.zip",
-        output_dir=output_dir["fastqc"],
+        filter=formatter(".+/(?P<lib>[^/]+)/(?P<fn>[^/]+).(fastq|fq).gz"),
+        output="%s/{lib[0]}/{fn[0]}_fastqc.zip" % output_dir["fastqc"],
+        extras=[output_dir["fastqc"], "{lib[0]}"])
+
+    # MultiQC
+    pipeline.merge(
+        task_func=stages.multiqc,
+        name="multiqc",
+        input=output_from("fastqc"),
+        output="%s/multiqc_report.html" % output_dir["fastqc"],
         extras=[output_dir["fastqc"]])
 
     # Stacks: Process RAD-Tags
@@ -193,6 +200,8 @@ def make_pipeline(state):
         input=output_from(align_task_name),
         filter=suffix(".bam"),
         output=".sorted.bam")
+
+    # TODO: filter with samtools view
 
     # Stacks: gstacks
     pipeline.merge(
