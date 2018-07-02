@@ -155,8 +155,15 @@ class PipelineStages(Stages):
                           output=output, input=input)
         run_stage(self.state, "sort_bam", command)
 
+    def filter_bam(self, input, output, extra_options):
+        '''Filter BAM file with Samtools view'''
+        command = "samtools view -b {extra_options} {input} > {output} && " \
+                  "samtools index {output}".format(extra_options=extra_options,
+                          input=input, output=output)
+        run_stage(self.state, "filter_bam", command)
+
     def gstacks(self, inputs, output, input_dir, output_dir, aligner_name,
-                sample_list):
+                final_bam_name, sample_list):
         '''Run gstacks'''
         safe_make_dir(output_dir)
         # Create popmap file using sample_list
@@ -166,8 +173,13 @@ class PipelineStages(Stages):
             f.write("\n".join(gstacks_popmap))
         cores = self.get_stage_options("gstacks", "cores")
         if aligner_name == "bwa_mem":
-            aligner_name = "bwa"
-        suffix = ".{aligner}.sorted.bam".format(aligner=aligner_name)
+            suffix = ".bwa.sorted"
+        else:
+            suffix = ".{aligner}.sorted".format(aligner=aligner_name)
+        if final_bam_name == "filter_bam":
+            suffix = suffix + ".filtered.bam"
+        else:
+            suffix = suffix + ".bam"
         command = "gstacks -t {cores} -M {popmap} -I {input_dir} -S {suffix} " \
                   "-O {output_dir}".format(cores=cores, popmap=popmap_filename,
                           input_dir=input_dir, suffix=suffix,

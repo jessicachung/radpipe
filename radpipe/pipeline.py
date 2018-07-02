@@ -67,6 +67,17 @@ def make_pipeline(state):
             state.options.target_tasks = ["bowtie_align"]
     logging.debug(state)
 
+    # Whether to include filter_bam stage or not
+    try:
+        samtools_view_options = state.config.get_options("samtools_view_options")
+        if samtools_view_options:
+            filter_bams = True
+        else:
+            filter_bams = False
+    except:
+        filter_bams = False
+    logging.debug("Filter bams: {}".format(filter_bams))
+
     # Population map filenames
     popmap_file = "{output_dir}/{name}_popmap.txt".format(
         output_dir=output_dir["populations"],
@@ -201,17 +212,28 @@ def make_pipeline(state):
         filter=suffix(".bam"),
         output=".sorted.bam")
 
-    # TODO: filter with samtools view
+    if filter_bams:
+        final_bam_task_name = "filter_bam"
+        pipeline.transform(
+            task_func=stages.filter_bam,
+            name="filter_bam",
+            input=output_from("sort_bam"),
+            filter=suffix(".sorted.bam"),
+            output=".sorted.filtered.bam",
+            extras=[state.config.get_options("samtools_view_options")])
+    else:
+        final_bam_task_name = "sort_bam"
 
     # Stacks: gstacks
     pipeline.merge(
         task_func=stages.gstacks,
         name="gstacks",
-        input=output_from(stages.sort_bam),
+        input=output_from(final_bam_task_name),
         output="%s/catalog.fa.gz" % output_dir["gstacks"],
         extras=[output_dir["alignments"],
                 output_dir["gstacks"],
                 align_task_name,
+                final_bam_task_name,
                 sample_list])
 
     # Define outputs from each run of populations
