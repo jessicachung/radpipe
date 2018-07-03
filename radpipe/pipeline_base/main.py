@@ -17,11 +17,11 @@ import sys
 from radpipe.pipeline_base.config import Config
 from radpipe.pipeline_base.state import State
 import radpipe.pipeline_base.error_codes
-#from logger import Logger
 import logging
-#from pipeline import make_pipeline
+# from radpipe.pipeline_base.logger import Logger
 
-
+# set logging level
+LOGGING_LEVEL = logging.INFO
 # default place to save cluster job scripts
 # (mostly useful for post-mortem debugging)
 DEFAULT_JOBSCRIPT_DIR = 'jobscripts'
@@ -49,11 +49,18 @@ def main(program_name, program_version, make_pipeline):
     # Parse command line arguments
     options = parse_command_line(program_version)
     # Initialise the logger
-    logging.basicConfig(filename=options.log_file, level=options.verbose)
+    # logger = Logger(__name__, options.log_file, options.verbose)
+    if options.log_file:
+        logging.basicConfig(
+            filename=options.log_file,
+            level=LOGGING_LEVEL,
+            filemode="a",
+            format="%(asctime)s %(levelname)s - %(message)s",
+            datefmt="%m-%d-%Y %H:%M:%S")
     logger = logging.getLogger(__name__)
     # Log the command line used to run the pipeline
+    logger.info("*** radpipe ***")
     logger.info(' '.join(sys.argv))
-    #logging.info(' '.join(sys.argv))
     drmaa_session = None
     try:
         # Set up the DRMAA session for running cluster jobs
@@ -67,7 +74,7 @@ def main(program_name, program_version, make_pipeline):
     # Parse the configuration file, and initialise global state
     config = Config(options.config)
     config.validate()
-    state = State(options=options, config=config, logger=logging,
+    state = State(options=options, config=config, logger=logger,
                   drmaa_session=drmaa_session)
     # Build the pipeline workflow
     pipeline = make_pipeline(state)

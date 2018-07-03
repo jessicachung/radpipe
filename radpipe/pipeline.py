@@ -13,8 +13,6 @@ import logging
 import sys
 import os
 
-logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.DEBUG)
-
 def make_pipeline(state):
     '''Build the pipeline by constructing stages and connecting them together'''
     # Build an empty pipeline
@@ -29,33 +27,33 @@ def make_pipeline(state):
     # Get a list of input files
     input_files = [l.files for l in libraries]
     # input_files = [item for sublist in input_files for item in sublist]
-    logging.info("Input files: " + str(input_files))
+    state.logger.info("Input files: " + str(input_files))
 
     # Get a list of all samples for each library
     samples_dict = OrderedDict()
     for l in libraries:
         samples_dict[l.name] = l.samples
-    logging.debug("Samples: " + str(samples_dict))
+    state.logger.debug("Samples: " + str(samples_dict))
 
     # Make sure that there are no duplicate samples
     sample_list = [item for sublist in samples_dict.values() for item in sublist]
     sample_counts = Counter(sample_list)
     for sample in sample_counts:
         if sample_counts[sample] > 1:
-            logging.error("Sample {} appears {} times in the barcodes files. "
-                          "Sample names must be unique".format(sample,
-                              sample_counts[sample]))
+            print("Sample {} appears {} times in the barcodes files. "
+                  "Sample names must be unique".format(sample,
+                      sample_counts[sample]))
             sys.exit(radpipe.error_codes.INVALID_INPUT_FILE)
 
     # Define output directories
     output_dir = get_output_paths(state)
-    logging.debug(output_dir)
+    state.logger.debug(output_dir)
 
     # Check if alignment_method is valid
     alignment_method = state.config.get_options("alignment_method").strip().lower()
     if alignment_method not in ["bwa mem", "bowtie"]:
-        logging.error("Error: Invalid alignment_method in config file. " \
-                      "Valid options are ['bwa mem', 'bowtie'].")
+        print("Error: Invalid alignment_method in config file. " \
+              "Valid options are ['bwa mem', 'bowtie'].")
         sys.exit(radpipe.error_codes.INVALID_ARGUMENT)
 
     # If 'alignment' is in target_tasks, specify which type of alignment job
@@ -65,7 +63,7 @@ def make_pipeline(state):
             state.options.target_tasks = ["bwa_align"]
         elif alignment_method == "bowtie":
             state.options.target_tasks = ["bowtie_align"]
-    logging.debug(state)
+    state.logger.debug(state)
 
     # Whether to include filter_bam stage or not
     try:
@@ -76,7 +74,7 @@ def make_pipeline(state):
             filter_bams = False
     except:
         filter_bams = False
-    logging.debug("Filter bams: {}".format(filter_bams))
+    state.logger.info("Filter bams: {}".format(filter_bams))
 
     # Population map filenames
     popmap_file = "{output_dir}/{name}_popmap.txt".format(
@@ -85,12 +83,12 @@ def make_pipeline(state):
     try:
         config_popmap_file = state.config.get_options("popmap_file")
         if config_popmap_file:
-            logging.info("Using popmap file: {}".format(config_popmap_file))
+            state.logger.info("Using popmap file: {}".format(config_popmap_file))
         else:
             raise(Exception)
     except Exception:
         config_popmap_file = None
-        logging.info("Creating new popmap file: {}".format(popmap_file))
+        state.logger.info("Creating new popmap file: {}".format(popmap_file))
 
     # Population r values
     populations_r = state.config.get_options("populations_r")

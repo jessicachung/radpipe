@@ -2,7 +2,6 @@
 Library information for RAD-Seq analysis.
 '''
 
-import logging
 import re
 import sys
 import itertools
@@ -10,7 +9,6 @@ import os.path
 from glob import glob
 from collections import defaultdict
 
-logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.DEBUG)
 
 class Library(object):
     '''Class for library information'''
