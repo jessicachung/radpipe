@@ -49,20 +49,33 @@ def make_pipeline(state):
     output_dir = get_output_paths(state)
     state.logger.debug(output_dir)
 
+    # Allow multiple comma-separated tasks
+    if len(state.options.target_tasks) == 1:
+        state.options.target_tasks = state.options.target_tasks[0].split(",")
+    if len(state.options.forced_tasks) == 1:
+        state.options.forced_tasks = state.options.forced_tasks[0].split(",")
+    state.logger.debug("Target tasks: " + str(state.options.target_tasks))
+    state.logger.debug("Forced tasks: " + str(state.options.forced_tasks))
+
     # Check if alignment_method is valid
     alignment_method = state.config.get_options("alignment_method").strip().lower()
     if alignment_method not in ["bwa mem", "bowtie"]:
         print("Error: Invalid alignment_method in config file. " \
               "Valid options are ['bwa mem', 'bowtie'].")
         sys.exit(radpipe.error_codes.INVALID_ARGUMENT)
+    if alignment_method == "bwa mem":
+        align_task_name = "bwa_mem"
+    else:
+        align_task_name = "bowtie"
 
-    # If 'alignment' is in target_tasks, specify which type of alignment job
-    # TODO: allow multiple comma-separated tasks
+    # If 'alignment' is in target_tasks or forced_tasks, specify which
+    # type of alignment job
     if "alignment" in state.options.target_tasks:
-        if alignment_method == "bwa mem":
-            state.options.target_tasks = ["bwa_align"]
-        elif alignment_method == "bowtie":
-            state.options.target_tasks = ["bowtie_align"]
+        index = state.options.target_tasks.index("alignment")
+        state.options.target_tasks[index] = align_task_name
+    if "alignment" in state.options.forced_tasks:
+        index = state.options.forced_tasks.index("alignment")
+        state.options.forced_tasks[index] = align_task_name
     state.logger.debug(state)
 
     # Whether to include filter_bam stage or not
@@ -116,7 +129,6 @@ def make_pipeline(state):
 
     # Create index for reference genome based on alignment method.
     if alignment_method == "bwa mem":
-        align_task_name = "bwa_mem"
         pipeline.transform(
             task_func=stages.bwa_index,
             name="bwa_index",
@@ -127,7 +139,6 @@ def make_pipeline(state):
             extras=[output_dir["reference"]])
 
     if alignment_method == "bowtie":
-        align_task_name = "bowtie"
         pipeline.transform(
             task_func=stages.bowtie_index,
             name="bowtie_index",
