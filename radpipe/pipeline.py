@@ -157,13 +157,13 @@ def make_pipeline(state):
         output="%s/{lib[0]}/{fn[0]}_fastqc.zip" % output_dir["fastqc"],
         extras=[output_dir["fastqc"], "{lib[0]}"])
 
-    # MultiQC
+    # MultiQC: FastQC
     pipeline.merge(
-        task_func=stages.multiqc,
-        name="multiqc",
+        task_func=stages.multiqc_fastqc,
+        name="multiqc_fastqc",
         input=output_from("fastqc"),
-        output="%s/multiqc_report.html" % output_dir["fastqc"],
-        extras=[output_dir["fastqc"]])
+        output="%s/multiqc_fastqc_report.html" % output_dir["qc"],
+        extras=[output_dir["qc"], output_dir["fastqc"]])
 
     # Stacks: Process RAD-Tags
     pipeline.transform(
@@ -232,6 +232,23 @@ def make_pipeline(state):
             extras=[state.config.get_options("samtools_view_options")])
     else:
         final_bam_task_name = "sort_bam"
+
+    # Samtools flagstat
+    pipeline.transform(
+        task_func=stages.flagstat,
+        name="flagstat",
+        input=output_from(final_bam_task_name),
+        filter=suffix(".bam"),
+        output=".flagstat.txt",
+        output_dir=output_dir["flagstat"])
+
+    # MultiQC: flagstat
+    pipeline.merge(
+        task_func=stages.multiqc_flagstat,
+        name="multiqc_flagstat",
+        input=output_from("flagstat"),
+        output="%s/multiqc_flagstat_report.html" % output_dir["qc"],
+        extras=[output_dir["qc"], output_dir["flagstat"]])
 
     # Stacks: gstacks
     pipeline.merge(

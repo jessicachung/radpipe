@@ -74,10 +74,11 @@ class PipelineStages(Stages):
                       fastq_input=fastq_input)
         run_stage(self.state, "fastqc", command)
 
-    def multiqc(self, input, output, fastqc_dir):
+    def multiqc_fastqc(self, input, output, qc_dir, fastqc_dir):
         '''Run MultiQC on the FastQC directory'''
-        command = "multiqc -o {fastqc_dir} {fastqc_dir}".format(
-                      fastqc_dir=fastqc_dir)
+        command = "multiqc --module fastqc --outdir {qc_dir} " \
+                  "--filename multiqc_fastqc {fastqc_dir}".format(
+                      qc_dir=qc_dir, fastqc_dir=fastqc_dir)
         run_stage(self.state, "multiqc", command)
 
     def process_radtags(self, inputs, output, output_dir, lib, re_1, re_2,
@@ -161,6 +162,20 @@ class PipelineStages(Stages):
                   "samtools index {output}".format(extra_options=extra_options,
                           input=input, output=output)
         run_stage(self.state, "filter_bam", command)
+
+    def flagstat(self, input, output):
+        '''Run Samtools flagstat on final BAM files'''
+        safe_make_dir(os.path.dirname(output))
+        command = "samtools flagstat {input} > {output}".format(
+                          input=input, output=output)
+        run_stage(self.state, "flagstat", command)
+
+    def multiqc_flagstat(self, input, output, qc_dir, flagstat_dir):
+        '''Run MultiQC on the flagstat directory'''
+        command = "multiqc --module samtools --outdir {qc_dir} " \
+                  "--filename multiqc_flagstat {flagstat_dir}".format(
+                      qc_dir=qc_dir, flagstat_dir=flagstat_dir)
+        run_stage(self.state, "multiqc", command)
 
     def gstacks(self, inputs, output, input_dir, output_dir, aligner_name,
                 final_bam_name, sample_list):

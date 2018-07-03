@@ -7,7 +7,9 @@ def get_output_paths(state):
     results_dir = state.config.get_options("results_dir")
     output_path = {
         "reference": "reference",
-        "fastqc": "fastqc",
+        "qc": "qc",
+        "fastqc": "qc/fastqc",
+        "flagstat": "qc/flagstat",
         "process_radtags": "sample_radtags",
         "alignments": "alignments",
         "gstacks": "gstacks",
