@@ -199,7 +199,7 @@ def make_pipeline(state):
             extras=[os.path.join(output_dir["reference"], "reference.fa"),
                     "{path[0]}", output_dir["alignments"], "{sm[0]}",
                     state.config.get_options("alignment_options")])
-        ).follows("bwa_index")
+        ).follows("bwa_index").follows("process_radtags")
 
     if align_task_name == "bowtie":
         (pipeline.transform(
@@ -211,7 +211,7 @@ def make_pipeline(state):
             extras=[os.path.join(output_dir["reference"], "reference"),
                     "{path[0]}", output_dir["alignments"], "{sm[0]}",
                     state.config.get_options("alignment_options")])
-        ).follows("bowtie_index")
+        ).follows("bowtie_index").follows("process_radtags")
 
     # Sort BAM and index
     pipeline.transform(
