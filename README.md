@@ -135,6 +135,15 @@ pipeline arguments:
                         date.
 ```
 
+### How to kill a running pipeline
+
+If you want to kill a running pipeline that is running in cluster mode, and
+`^C` isn't killing the pipeline process, you will need to cancel all individual
+pipeline jobs in the system. On SLURM, you can cancel your jobs with
+`scancel <job_id>`. If all your jobs are from radpipe, you can cancel all jobs
+submitted with `scancel --user=<your_username>`.
+
+
 # Stages
 
 - **`fastqc`**: Runs FastQC on raw sequencing files and outputs to `results/qc/fastqc/`.
@@ -145,11 +154,11 @@ pipeline arguments:
 - **`sort_bam`**: Sorts BAM files by coordinate and generates indices. Outputs to `results/alignments/`.
 - **`filter_bam`**: Optional step to filter BAM files using Samtools view. Outputs to `results/alignments/`.
 - **`flagstat`**: Runs Samtools flagstat on the final BAM files and outputs to `results/qc/flagstat/`.
-- **`multiqc_fastqc`**: Runs MultiQC on the flagstat outputs and outputs to `results/qc/`.
+- **`multiqc_flagstat`**: Runs MultiQC on the flagstat outputs and outputs to `results/qc/`.
 - **`gstacks`**: Runs Stacks gstacks on sorted BAMs and outputs to `results/gstacks/`.
 - **`populations`**: Runs Stacks populations and outputs to `results/populations/`.
 
-You can also generate a flowchart image with the ``--flowchart` option.
+You can also generate a flowchart image with the `--flowchart` option.
 
 ```bash
 radpipe \
@@ -158,11 +167,3 @@ radpipe \
     --flowchart_format png \
     --flowchart radpipe.png
 ```
-
-# How to kill a running pipeline
-
-If you want to kill a running pipeline that is running in cluster mode, and
-`^C` isn't killing the pipeline process, you will need to cancel all individual
-pipeline jobs in the system. On SLURM, you can cancel your jobs with
-`scancel <job_id>`. If all your jobs are from radpipe, you can cancel all jobs
-submitted with `scancel --user=<your_username>`.
