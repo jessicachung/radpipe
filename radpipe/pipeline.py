@@ -186,8 +186,7 @@ def make_pipeline(state):
         extras=[output_dir["process_radtags"], "{lib[0]}",
                 state.config.get_options("renz_1"),
                 state.config.get_options("renz_2"),
-                state.config.get_options("process_radtags_options")]
-    ).follows("fastqc")
+                state.config.get_options("process_radtags_options")])
 
     # Create a list for alignment with the input fastq files from process_radtags
     process_radtags_outputs = []
