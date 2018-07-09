@@ -65,9 +65,12 @@ def make_pipeline(state):
         sys.exit(radpipe.error_codes.INVALID_ARGUMENT)
     if alignment_method == "bwa mem":
         align_task_name = "bwa_mem"
+        index_task_name = "bwa_index"
     else:
         align_task_name = "bowtie"
+        index_task_name = "bowtie_index
 
+    # TODO: Refactor this
     # If 'alignment' is in target_tasks or forced_tasks, specify which
     # type of alignment job
     if "alignment" in state.options.target_tasks:
@@ -76,17 +79,25 @@ def make_pipeline(state):
     if "alignment" in state.options.forced_tasks:
         index = state.options.forced_tasks.index("alignment")
         state.options.forced_tasks[index] = align_task_name
+
+    # If 'build_index' is in target_tasks or forced_tasks, specify which
+    # type of index job
+    if "build_index" in state.options.target_tasks:
+        index = state.options.target_tasks.index("build_index")
+        state.options.target_tasks[index] = index_task_name
+    if "build_index" in state.options.forced_tasks:
+        index = state.options.forced_tasks.index("build_index")
+        state.options.forced_tasks[index] = index_task_name
     state.logger.debug(state)
 
     # Whether to include filter_bam stage or not
+    filter_bams = False
     try:
         samtools_view_options = state.config.get_options("samtools_view_options")
         if samtools_view_options:
             filter_bams = True
-        else:
-            filter_bams = False
     except:
-        filter_bams = False
+        pass
     state.logger.info("Filter bams: {}".format(filter_bams))
 
     # Population map filenames
