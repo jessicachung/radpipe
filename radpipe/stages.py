@@ -150,7 +150,7 @@ class PipelineStages(Stages):
     def sort_bam(self, input, output):
         '''Sort BAM file by coordinates'''
         cores = self.get_stage_options("sort_bam", "cores")
-        mem = max(floor(self.get_stage_options("sort_bam", "mem") / cores), 1)
+        mem = max(floor(self.get_stage_options("sort_bam", "mem") / cores) - 1, 1)
         command = "samtools sort -@ {cores} -m {mem}G -o {output} {input} " \
                   "&& samtools index {output}".format(cores=cores, mem=mem,
                           output=output, input=input)
