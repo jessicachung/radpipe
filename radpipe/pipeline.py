@@ -270,7 +270,8 @@ def make_pipeline(state):
                 output_dir["gstacks"],
                 align_task_name,
                 final_bam_task_name,
-                sample_list])
+                sample_list,
+                state.config.get_options("gstacks_options")])
 
     # Define outputs from each run of populations
     populations_outputs = []

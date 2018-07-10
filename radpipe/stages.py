@@ -178,7 +178,7 @@ class PipelineStages(Stages):
         run_stage(self.state, "multiqc", command)
 
     def gstacks(self, inputs, output, input_dir, output_dir, aligner_name,
-                final_bam_name, sample_list):
+                final_bam_name, sample_list, gstacks_options):
         '''Run gstacks'''
         safe_make_dir(output_dir)
         # Create popmap file using sample_list
@@ -196,8 +196,10 @@ class PipelineStages(Stages):
         else:
             suffix = suffix + ".bam"
         command = "gstacks -t {cores} -M {popmap} -I {input_dir} -S {suffix} " \
-                  "-O {output_dir}".format(cores=cores, popmap=popmap_filename,
+                  "{gstacks_options} -O {output_dir}".format(
+                          cores=cores, popmap=popmap_filename,
                           input_dir=input_dir, suffix=suffix,
+                          gstacks_options=gstacks_options,
                           output_dir=output_dir)
         run_stage(self.state, "gstacks", command)
 
@@ -214,7 +216,9 @@ class PipelineStages(Stages):
         # Get r value
         r = output_dir.split("_")[-1][1:]
         command = "populations -P {gstacks_dir} -O {output_dir} -t {cores} " \
-                  "-M {popmap} -r {r} --vcf".format(gstacks_dir=gstacks_dir,
+                  "-M {popmap} -r {r} --vcf {populations_options}".format(
+                          gstacks_dir=gstacks_dir,
                           output_dir=output_dir, cores=cores,
-                          popmap=popmap_file, r=r)
+                          popmap=popmap_file, r=r,
+                          populations_options=populations_options)
         run_stage(self.state, "populations", command)
