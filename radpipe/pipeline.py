@@ -68,7 +68,7 @@ def make_pipeline(state):
         index_task_name = "bwa_index"
     else:
         align_task_name = "bowtie"
-        index_task_name = "bowtie_index
+        index_task_name = "bowtie_index"
 
     # TODO: Refactor this
     # If 'alignment' is in target_tasks or forced_tasks, specify which
